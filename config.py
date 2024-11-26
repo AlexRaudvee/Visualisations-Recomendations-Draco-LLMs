@@ -6,7 +6,7 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # MODEL CONFIGS
 
-genai.configure(api_key="AIzaSyCKPqjjyRac5d6HKRd2hfvV-3ypZCU3Gc8")
+genai.configure(api_key="API-KEY")
 
 model = genai.GenerativeModel(model_name = "gemini-1.5-flash-002", 
                               safety_settings = {HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE, HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE},
