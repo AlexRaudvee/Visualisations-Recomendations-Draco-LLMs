@@ -1,77 +1,58 @@
-import pandas as pd
-from vega_datasets import data
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-# Loading data
-weather_data: pd.DataFrame = data.seattle_weather()
-# Separating out the positive temperatures for the log scale example
-weather_data_positive = weather_data[weather_data["temp_max"] > 0]
+# Imports
 
+# Display utilities
 import json
 
-from IPython.display import display
+import numpy as np
+from IPython.display import Markdown, display
 
-from draco import Draco, dict_to_facts, dict_union
+import altair as alt
+import pandas as pd
+from vega_datasets import data as vega_data
 from draco.renderer import AltairRenderer
 
-d = Draco()
-renderer = AltairRenderer(concat_mode="hconcat")
+import draco as drc
 
+from functions import *
 
-def show(*args, df: pd.DataFrame = weather_data):
-    spec = dict_union(*args)
-    prog = dict_to_facts(spec)
-    if not d.check_spec(prog):
-        print("\n".join(prog))
-        print(d.get_violations(prog))
-        assert False, "Invalid spec"
+# Loading data to be explored
+df: pd.DataFrame = vega_data.seattle_weather()
+df.head()
 
-    # Display the rendered VL chart and the ASP
-    chart = renderer.render(spec, df)
-    print(json.dumps(spec, indent=2))
-    display(chart)
-    display(prog)
-    
-    
-def data(fields: list[str], df: pd.DataFrame = weather_data) -> dict:
-    number_rows, _ = df.shape
-    return {
-        "number_rows": number_rows,
-        "field": [
-            x
-            for x in [
-                {"name": "temp_max", "type": "number", "__id__": "temp_max"},
-                {"name": "wind", "type": "number", "__id__": "wind"},
-                {"name": "precipitation", "type": "number", "__id__": "precipitation"},
-                {"name": "weather", "type": "string", "__id__": "weather"},
-            ]
-            if x["name"] in fields
-        ],
-    }
-    
-show(
-    data(["weather", "temp_max"]),
-    {
-        "view": [
-            {
-                "coordinates": "cartesian",
-                "mark": [
-                    {
-                        "type": "bar",
-                        "encoding": [
-                            {"channel": "x", "field": "weather"},
-                            {
-                                "channel": "y",
-                                "field": "temp_max",
-                                "aggregate": "mean",
-                            },
-                        ],
-                    }
-                ],
-                "scale": [
-                    {"channel": "x", "type": "ordinal"},
-                    {"channel": "y", "type": "linear", "zero": "true"},
-                ],
-            }
-        ]
-    },
-)
+# At the beginning we extract the schema of the data that we have
+data_schema = drc.schema_from_dataframe(df)
+# pprint(data_schema)
+
+# Now we can convert this schema to the facts that Draco can use later to reason about the data when generating recommendations
+data_schema_facts = drc.dict_to_facts(data_schema)
+# pprint(data_schema_facts)
+
+# Partial specification 
+input_spec_base = data_schema_facts + [
+    "entity(view,root,v0).",
+    "entity(mark,v0,m0).",
+]
+
+########## LATER CHOOSE THE COLUMNS VIA LLM ##########
+
+# Extended specification 
+input_spec = input_spec_base + [
+    # We want to encode the `date` field
+    "entity(encoding,m0,e0).",
+    "attribute((encoding,field),e0,date).",
+    # We want to encode the `temp_max` field
+    "entity(encoding,m0,e1).",
+    "attribute((encoding,field),e1,temp_max).",
+]
+
+# Make Recommendations
+recommendations = recommend_charts(spec=input_spec, df=df, num=5)
+
+# Take the top among Design Space
+recommendations = take_top(recommendation_dict=recommendations)
+
+# Display the best chart among space
+display_chart(recommendation_dict=recommendations)
