@@ -2,22 +2,13 @@
 # -*- coding: utf-8 -*-
 
 # Imports
-
-# Display utilities
-import json
-
-import numpy as np
-from IPython.display import Markdown, display
-
-import altair as alt
-import pandas as pd
-from vega_datasets import data as vega_data
-from draco.renderer import AltairRenderer
-
 import draco as drc
+import pandas as pd
 
 from config import model
 from functions import *
+from vega_datasets import data as vega_data
+
 
 # Loading data to be explored
 df: pd.DataFrame = vega_data.seattle_weather()
