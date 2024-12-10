@@ -16,6 +16,7 @@ from draco.renderer import AltairRenderer
 
 import draco as drc
 
+from config import model
 from functions import *
 
 # Loading data to be explored
@@ -36,23 +37,34 @@ input_spec_base = data_schema_facts + [
     "entity(mark,v0,m0).",
 ]
 
-########## LATER CHOOSE THE COLUMNS VIA LLM ##########
+# Choose the columns with LLM
+recommended_columns = recommend_columns(model=model, df=df)
 
 # Extended specification 
 input_spec = input_spec_base + [
     # We want to encode the `date` field
     "entity(encoding,m0,e0).",
-    "attribute((encoding,field),e0,date).",
+    f"attribute((encoding,field),e0,{recommended_columns[0]}).",
     # We want to encode the `temp_max` field
     "entity(encoding,m0,e1).",
-    "attribute((encoding,field),e1,temp_max).",
+    f"attribute((encoding,field),e1,{recommended_columns[1]}).",
 ]
 
 # Make Recommendations
 recommendations = recommend_charts(spec=input_spec, df=df, num=5)
 
 # Take the top among Design Space
-recommendations = take_top(recommendation_dict=recommendations)
+recommendation, top_viz = take_top(recommendation_dict=recommendations)
 
-# Display the best chart among space
-display_chart(recommendation_dict=recommendations)
+# Evaluation Part 
+draco_score = top_viz[2]
+
+# Display the best chart among space and save it
+chart = top_viz[3]
+display_chart(recommendation_dict=recommendations, file_name="assets/best_chart_llm")
+
+print(f"Draco score of the best char by using LLM: {draco_score}")
+
+column_combinations = generate_column_combinations(df=df)
+for column_combination in column_combinations:
+    

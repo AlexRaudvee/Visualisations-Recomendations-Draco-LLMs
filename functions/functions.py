@@ -2,20 +2,19 @@
 # -*- coding: utf-8 -*-
 
 # Imports
-
-# Display utilities
+# Imports for working with json and strings 
+import ast
 import json
+import itertools
 
+# Display utilities and math
 import numpy as np
 from IPython.display import Markdown, display
 
-import altair as alt
-import pandas as pd
-from vega_datasets import data as vega_data
-from draco.renderer import AltairRenderer
-from altair_saver import save
-
 import draco as drc
+import pandas as pd                # pandas to manipulate the data
+import altair as alt               # Altair to manipulate the knowledge and the graphs
+from draco.renderer import AltairRenderer
 
 # Initialize draco and Altair Render
 d = drc.Draco()
@@ -40,6 +39,56 @@ def md(markdown: str):
 
 def pprint(obj):
     md(f"```json\n{json.dumps(obj, indent=2, cls=NpEncoder)}\n```")
+
+
+def generate_summary(df: pd.DataFrame):
+
+    summary = []
+    summary.append("---   Column         Non-Null Count  Dtype")
+    summary.append("---  ------         --------------  -----")
+    for i, (col, dtype) in enumerate(zip(df.columns, df.dtypes)):
+        non_null_count = df[col].notnull().sum()
+        summary.append(f"{i:<4} {col:<15} {non_null_count:<15} {dtype}")
+    dtype_summary = ", ".join([f"{dtype.name}({(df.dtypes == dtype).sum()})" for dtype in df.dtypes.unique()])
+    summary.append(f"dtypes: {dtype_summary}")
+    return "\n".join(summary)
+
+
+def extract_python_list(input_string: str):
+    # Remove the markdown-style code block delimiters
+    cleaned_string = input_string.replace("```python", "").replace("```", "").strip()
+    # Use ast.literal_eval to safely evaluate the Python list
+    python_list = ast.literal_eval(cleaned_string)
+    return python_list
+
+
+def recommend_columns(model, df: pd.DataFrame):
+    prompt = f"""Given this information about the dataframe:\n\n{generate_summary(df)}\n\n
+                 Give me the list of two columns that are going to result in the 
+                 most expressive visualisation, your answer should contain only 
+                 this python list [column, column].
+            """
+    
+    _response = model.generate_content(contents=prompt)
+    response = _response.text
+    response = extract_python_list(response)
+
+    assert type(response) == list
+
+    return response 
+
+
+def generate_column_combinations(df):
+    # Get the list of columns from the dataframe
+    columns = df.columns.tolist()
+    
+    # Generate all unique combinations of two columns
+    combinations = list(itertools.combinations(columns, 2))
+    
+    # Convert each combination to a list format
+    combinations = [list(comb) for comb in combinations]
+    
+    return combinations
 
 
 def recommend_charts(spec: list[str], df: pd.DataFrame, num: int = 5, labeler=lambda i: f"CHART {i+1}") -> dict[str, tuple[list[str], dict]]:
@@ -124,7 +173,8 @@ def take_top(recommendation_dict: dict) -> dict:
     ---
     - dict: 
         A sorted dictionary where chart recommendations are ordered by their cost in ascending order.
-
+    - tuple:
+        A tuple of the top design
     Examples
     ---
     >>> recommendations = {
@@ -141,7 +191,10 @@ def take_top(recommendation_dict: dict) -> dict:
     # Convert the sorted items back into a dictionary
     sorted_dict = dict(sorted_items)
     
-    return sorted_dict
+    first_key = next(iter(recommendation_dict))
+    top_design = recommendation_dict[first_key]
+
+    return sorted_dict, top_design
 
 
 def display_chart(recommendation_dict: dict, file_name: str = f'assets/'):
@@ -189,3 +242,21 @@ def display_chart(recommendation_dict: dict, file_name: str = f'assets/'):
 
     # Save the chart to a file
     chart.save(file_name)
+
+
+def evaluate_vega_lite_spec(spec):
+    try:
+        chart = alt.Chart.from_dict(spec)
+        print("Vega-Lite Chart is Valid")
+        return chart
+    except Exception as e:
+        print("Vega-Lite Chart Error:", e)
+        return None
+
+
+# print("\nEvaluating Vega-Lite Chart...")
+# chart = evaluate_vega_lite(vega_lite_spec)
+
+# # If desired, render the Vega-Lite chart
+# if chart:
+#     chart.display()
