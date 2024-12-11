@@ -56,6 +56,38 @@ display_chart(recommendation_dict=recommendations, file_name="assets/best_chart_
 
 print(f"Draco score of the best char by using LLM: {draco_score}")
 
+output = {"llm_columns": top_viz}
 column_combinations = generate_column_combinations(df=df)
 for column_combination in column_combinations:
-    pass
+    # Extended specification 
+    input_spec = input_spec_base + [
+        # We want to encode the `date` field
+        "entity(encoding,m0,e0).",
+        f"attribute((encoding,field),e0,{column_combination[0]}).",
+        # We want to encode the `temp_max` field
+        "entity(encoding,m0,e1).",
+        f"attribute((encoding,field),e1,{column_combination[1]}).",
+    ]
+    
+    recommendation = recommend_charts(spec=input_spec, df=df, num=5)
+    
+    # Make Recommendations
+    recommendations = recommend_charts(spec=input_spec, df=df, num=5)
+
+    # Take the top among Design Space
+    recommendation, top_viz = take_top(recommendation_dict=recommendations)
+
+    # Evaluation Part 
+    draco_score = top_viz[2]
+
+    # Display the best chart among space and save it
+    chart = top_viz[3]
+    display_chart(recommendation_dict=recommendations, file_name=f"assets/chart_{column_combination[0]}_{column_combination[1]}_{draco_score}")
+
+    # Get the info about chart
+    facts = top_viz[0]
+    spec = top_viz[1]
+
+    # Add the info to the output
+    output[f"{column_combination[0]}_{column_combination[1]}"] = facts, spec, draco_score, chart 
+    

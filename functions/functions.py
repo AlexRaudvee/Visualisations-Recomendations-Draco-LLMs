@@ -14,6 +14,7 @@ from IPython.display import Markdown, display
 import draco as drc
 import pandas as pd                # pandas to manipulate the data
 import altair as alt               # Altair to manipulate the knowledge and the graphs
+import vl_convert as vlc
 from draco.renderer import AltairRenderer
 
 # Initialize draco and Altair Render
@@ -238,10 +239,12 @@ def display_chart(recommendation_dict: dict, file_name: str = f'assets/'):
     # Display the chart
     display(chart)
 
-    file_name += f"fig-{first_key}.html"
+    file_name += ".png"
 
-    # Save the chart to a file
-    chart.save(file_name)
+    # Save the chart to a png file
+    png_data = vlc.vegalite_to_png(vl_spec=chart.to_dict())
+    with open(file_name, "wb") as f:
+        f.write(png_data)
 
 
 def evaluate_vega_lite_spec(spec):
