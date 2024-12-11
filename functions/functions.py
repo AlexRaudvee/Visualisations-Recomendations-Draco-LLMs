@@ -6,6 +6,7 @@
 import ast
 import json
 import itertools
+import PIL.Image
 
 # Display utilities and math
 import numpy as np
@@ -15,7 +16,9 @@ import draco as drc
 import pandas as pd                # pandas to manipulate the data
 import altair as alt               # Altair to manipulate the knowledge and the graphs
 import vl_convert as vlc
+
 from draco.renderer import AltairRenderer
+from config import *
 
 # Initialize draco and Altair Render
 d = drc.Draco()
@@ -247,19 +250,16 @@ def display_chart(recommendation_dict: dict, file_name: str = f'assets/'):
         f.write(png_data)
 
 
-def evaluate_vega_lite_spec(spec):
+def evaluate_chart_with_LLM(path_to_chart: str, question_set: list[str]) -> list[float] | None:
     try:
-        chart = alt.Chart.from_dict(spec)
-        print("Vega-Lite Chart is Valid")
-        return chart
-    except Exception as e:
-        print("Vega-Lite Chart Error:", e)
+        sample_file = PIL.Image.open(f"{path_to_chart}")
+        prompt = f"QUESTIONS:{efficiency_questions}"
+        response_ = evaluation_model.generate_content([prompt, sample_file]).text
+
+        # Clean and parse the string
+        cleaned_string = response_.strip("```python\n").strip("\n```")
+        response = ast.literal_eval(cleaned_string)
+        return response
+
+    except:
         return None
-
-
-# print("\nEvaluating Vega-Lite Chart...")
-# chart = evaluate_vega_lite(vega_lite_spec)
-
-# # If desired, render the Vega-Lite chart
-# if chart:
-#     chart.display()
