@@ -243,7 +243,7 @@ def display_chart(recommendation_dict: dict, file_name: str = f'assets/'):
     chart = recommendation_dict[first_key][-1]
 
     # Display the chart
-    display(chart)
+    # display(chart)
 
     file_name += ".png"
 
@@ -265,7 +265,7 @@ def evaluate_chart_with_LLM(path_to_chart: str, question_set: list[str]) -> list
         return response
 
     except Exception as e:
-        print(e)
+        # print(e)
         return None
     
     
@@ -283,19 +283,21 @@ def apply_function_to_files(directory, output_csv, func, concepts_dict):
                     # Apply the function to the file and store the result
                     result = func(file_path, concepts_dict[f'{key}'])
                     if result:
-                        results.append((file_name[:-4] + "_" + key, result))
+                        results.append((file_name[:-4].split("+")[0],
+                                        file_name[:-4].split("+")[1],
+                                        file_name[:-4].split("+")[2], key, result))
                         retry = False
                         print(f"DONE: {file_name}, {key}")
                     else:
                         # Handle errors and record them in the results
-                        print(f"ERROR: Error in LLM output for concept '{key}' for chart {file_name}. Cool-down of LLM for 10 seconds...")
-                        time.sleep(10)
+                        print(f"ERROR: Error in LLM output for concept '{key}' for chart {file_name[:-4]}. Cool-down of LLM for 20 seconds...")
+                        time.sleep(20)
                     
 
     # Write results to a CSV file
     with open(output_csv, mode='w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(['file_name', 'Result'])  # Header row
+        writer.writerow(['col1', 'col2', 'draco_score', 'concept', 'Result'])  # Header row
         writer.writerows(results)
 
     print(f"Results have been saved to {output_csv}")

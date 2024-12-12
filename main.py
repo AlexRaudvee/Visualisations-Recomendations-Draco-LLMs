@@ -52,7 +52,8 @@ draco_score = top_viz[2]
 
 # Display the best chart among space and save it
 chart = top_viz[3]
-display_chart(recommendation_dict=recommendations, file_name="assets/best_chart_llm")
+display_chart(recommendation_dict=recommendations, 
+              file_name=f"assets/LLM_{recommended_columns[0]}+LLM_{recommended_columns[1]}+LLM_{draco_score}")
 
 print(f"Draco score of the best char by using LLM: {draco_score}")
 
@@ -82,7 +83,8 @@ for column_combination in column_combinations:
 
     # Display the best chart among space and save it
     chart = top_viz[3]
-    display_chart(recommendation_dict=recommendations, file_name=f"assets/chart_{column_combination[0]}_{column_combination[1]}_{draco_score}")
+    display_chart(recommendation_dict=recommendations, 
+                  file_name=f"assets/{column_combination[0]}+{column_combination[1]}+{draco_score}")
 
     # Get the info about chart
     facts = top_viz[0]
@@ -93,7 +95,14 @@ for column_combination in column_combinations:
     
 # EVALUATION 
 
+# global vars for evaluation
 charts_dir = "./assets"
 results_file = "results.csv"
 
+# run the evaluation
 apply_function_to_files(directory=charts_dir, output_csv=results_file, func=evaluate_chart_with_LLM, concepts_dict=concepts_dict)
+
+# load the results
+
+df_results = pd.read_csv("./results.csv")
+
