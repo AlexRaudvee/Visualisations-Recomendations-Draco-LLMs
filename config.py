@@ -81,3 +81,5 @@ gestalt_principles_questions = [
     "Does the visual design emphasize important areas of the chart (figure-ground)?",
     "Are the patterns in the data emphasized through the layout or colour choices?"
 ]
+
+concepts_dict = {"expressiveness": expressiveness_questions, "efficiency": efficiency_questions, "engagement": engagement_questions, "data_ink_ratio": data_ink_ratio_questions, "gestalt_principles": gestalt_principles_questions}

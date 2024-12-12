@@ -91,3 +91,9 @@ for column_combination in column_combinations:
     # Add the info to the output
     output[f"{column_combination[0]}_{column_combination[1]}"] = facts, spec, draco_score, chart 
     
+# EVALUATION 
+
+charts_dir = "./assets"
+results_file = "results.csv"
+
+apply_function_to_files(directory=charts_dir, output_csv=results_file, func=evaluate_chart_with_LLM, concepts_dict=concepts_dict)

@@ -3,8 +3,11 @@
 
 # Imports
 # Imports for working with json and strings 
+import os
+import csv
 import ast
 import json
+import time
 import itertools
 import PIL.Image
 
@@ -253,7 +256,7 @@ def display_chart(recommendation_dict: dict, file_name: str = f'assets/'):
 def evaluate_chart_with_LLM(path_to_chart: str, question_set: list[str]) -> list[float] | None:
     try:
         sample_file = PIL.Image.open(f"{path_to_chart}")
-        prompt = f"QUESTIONS:{efficiency_questions}"
+        prompt = f"QUESTIONS:{question_set}"
         response_ = evaluation_model.generate_content([prompt, sample_file]).text
 
         # Clean and parse the string
@@ -261,5 +264,38 @@ def evaluate_chart_with_LLM(path_to_chart: str, question_set: list[str]) -> list
         response = ast.literal_eval(cleaned_string)
         return response
 
-    except:
+    except Exception as e:
+        print(e)
         return None
+    
+    
+def apply_function_to_files(directory, output_csv, func, concepts_dict):
+    # Prepare the results list
+    results = []
+
+    # Iterate through files in the directory
+    for root, _, files in os.walk(directory):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            for key in concepts_dict:
+                retry = True
+                while retry:
+                    # Apply the function to the file and store the result
+                    result = func(file_path, concepts_dict[f'{key}'])
+                    if result:
+                        results.append((file_name[:-4] + "_" + key, result))
+                        retry = False
+                        print(f"DONE: {file_name}, {key}")
+                    else:
+                        # Handle errors and record them in the results
+                        print(f"ERROR: Error in LLM output for concept '{key}' for chart {file_name}. Cool-down of LLM for 10 seconds...")
+                        time.sleep(10)
+                    
+
+    # Write results to a CSV file
+    with open(output_csv, mode='w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(['file_name', 'Result'])  # Header row
+        writer.writerows(results)
+
+    print(f"Results have been saved to {output_csv}")
