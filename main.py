@@ -4,6 +4,8 @@
 # Imports
 import draco as drc
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 from config import model
 from functions import *
@@ -103,6 +105,19 @@ results_file = "results.csv"
 apply_function_to_files(directory=charts_dir, output_csv=results_file, func=evaluate_chart_with_LLM, concepts_dict=concepts_dict)
 
 # load the results
-
 df_results = pd.read_csv("./results.csv")
+# Convert the string representation of lists to actual lists
+df_results['Result'] = df_results['Result'].apply(ast.literal_eval)
+# Calculate the average of the lists
+df_results["Result"] = df_results['Result'].apply(lambda x: sum(x) / len(x) if len(x) > 0 else 0)
 
+# Create a heatmap to compare scores across all combinations and concepts
+pivot_df = df_results.pivot_table(values="Result", index=["col1", "col2"], columns="concept")
+plt.figure(figsize=(12, 8))
+sns.heatmap(pivot_df, annot=True, cmap="coolwarm", cbar_kws={'label': 'Result Score'})
+plt.title("Heatmap of Results by Column Combinations and Concepts", fontsize=16)
+plt.ylabel("Column Combinations", fontsize=12)
+plt.xlabel("Concept", fontsize=12)
+plt.tight_layout()
+plt.show()
+plt.savefig("assets/results.png")
