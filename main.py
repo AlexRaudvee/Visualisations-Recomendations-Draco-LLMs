@@ -55,13 +55,13 @@ draco_score = top_viz[2]
 # Display the best chart among space and save it
 chart = top_viz[3]
 display_chart(recommendation_dict=recommendations, 
-              file_name=f"assets/LLM_{recommended_columns[0]}+LLM_{recommended_columns[1]}+LLM_{draco_score}")
+              file_name=f"assets/LLM_{recommended_columns[0]}+LLM_{recommended_columns[1]}+{draco_score}")
 
 print(f"Draco score of the best char by using LLM: {draco_score}")
 
 output = {"llm_columns": top_viz}
 column_combinations = generate_column_combinations(df=df)
-for column_combination in column_combinations:
+for column_combination in [item for item in column_combinations if item not in [recommended_columns]]:
     # Extended specification 
     input_spec = input_spec_base + [
         # We want to encode the `date` field
@@ -101,8 +101,8 @@ for column_combination in column_combinations:
 charts_dir = "./assets"
 results_file = "results.csv"
 
-# run the evaluation
-apply_function_to_files(directory=charts_dir, output_csv=results_file, func=evaluate_chart_with_LLM, concepts_dict=concepts_dict)
+# run the evaluation on the 
+apply_eval_to_charts_folder(directory=charts_dir, output_csv=results_file, func=evaluate_chart_with_LLM, concepts_dict=concepts_dict)
 
 # load the results
 df_results = pd.read_csv("./results.csv")
@@ -119,5 +119,5 @@ plt.title("Heatmap of Results by Column Combinations and Concepts", fontsize=16)
 plt.ylabel("Column Combinations", fontsize=12)
 plt.xlabel("Concept", fontsize=12)
 plt.tight_layout()
-plt.show()
 plt.savefig("assets/results.png")
+plt.show()
