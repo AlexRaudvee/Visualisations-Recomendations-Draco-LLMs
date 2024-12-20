@@ -99,19 +99,52 @@ for column_combination in [item for item in column_combinations if item not in [
 
 # global vars for evaluation
 charts_dir = "./assets"
-results_file = "results.csv"
+results_file = "./data/results.csv"
 
 # run the evaluation on the 
 apply_eval_to_charts_folder(directory=charts_dir, output_csv=results_file, func=evaluate_chart_with_LLM, concepts_dict=concepts_dict)
 
-# load the results
-df_results = pd.read_csv("./results.csv")
+df_results = pd.read_csv("./data/results.csv")
+
 # Convert the string representation of lists to actual lists
 df_results['Result'] = df_results['Result'].apply(ast.literal_eval)
+df_results['draco_score'] = df_results['draco_score'].apply(int)
+
 # Calculate the average of the lists
 df_results["Result"] = df_results['Result'].apply(lambda x: sum(x) / len(x) if len(x) > 0 else 0)
 
-# Create a heatmap to compare scores across all combinations and concepts
+# Step 1: Create a grouped bar plot for each concept
+df_results['cols'] = df_results['col1'] + '_' + df_results['col2']
+df_results['average_result'] = df_results.groupby('cols')['Result'].transform('mean')
+
+# Select numeric columns for aggregation
+numeric_columns = df_results.select_dtypes(include="number").columns
+
+# Ensure the group keys are retained even if they are not numeric
+group_keys = ["cols", "draco_score"]
+columns_to_aggregate = [col for col in numeric_columns if col not in group_keys]
+
+# Group and calculate the mean for numeric metrics
+df_results_ = (
+    df_results.groupby(group_keys)[columns_to_aggregate]
+    .mean()
+    .reset_index()
+    .sort_values(by='draco_score', ascending=True)
+)
+
+
+plt.figure(figsize=(14, 7))
+sns.barplot(data=df_results_, x="cols", y="draco_score", hue='average_result', errorbar=None)
+plt.title("Comparison of Results by Draco Score + Concepts and Column Combinations", fontsize=16)
+plt.ylabel("Draco Score", fontsize=12)
+plt.xlabel("Columns", fontsize=12)
+plt.xticks(rotation=45)
+plt.legend(title="Average on Concepts Score")
+plt.tight_layout()
+plt.savefig("./assets/results_bar.png")
+plt.show()
+
+# Step 2: Create a heatmap to compare scores across all combinations and concepts
 pivot_df = df_results.pivot_table(values="Result", index=["col1", "col2"], columns="concept")
 plt.figure(figsize=(12, 8))
 sns.heatmap(pivot_df, annot=True, cmap="coolwarm", cbar_kws={'label': 'Result Score'})
@@ -119,5 +152,5 @@ plt.title("Heatmap of Results by Column Combinations and Concepts", fontsize=16)
 plt.ylabel("Column Combinations", fontsize=12)
 plt.xlabel("Concept", fontsize=12)
 plt.tight_layout()
-plt.savefig("assets/results.png")
+plt.savefig("./assets/results_conf_matrix.png")
 plt.show()

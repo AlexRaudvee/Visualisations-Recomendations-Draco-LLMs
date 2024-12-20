@@ -529,7 +529,7 @@ def evaluate_chart_with_LLM(path_to_chart: str, question_set: list[str]) -> list
         return None
     
     
-def apply_eval_to_charts_folder(directory: str, output_csv: str, func: function, concepts_dict: dict):
+def apply_eval_to_charts_folder(func, directory: str, output_csv: str, concepts_dict: dict):
     """
     Apply a specified evaluation function to all files in a directory, process the results, 
     and save them to a CSV file.
