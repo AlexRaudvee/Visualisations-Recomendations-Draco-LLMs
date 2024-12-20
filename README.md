@@ -60,8 +60,8 @@ This section provides instructions for running the project locally or using Dock
 
 1. **Clone the Repository**:
    ```bash
-   git clone <repository_url>
-   cd <repository_directory>
+   git clone https://github.com/AlexRaudvee/Visualisations-Recomendations-Draco-LLMs
+   cd https://github.com/AlexRaudvee/Visualisations-Recomendations-Draco-LLMs
    ```
 2. **Set Up a Python Environment**:
     - Create and activate a virtual environment:
