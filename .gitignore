@@ -162,4 +162,4 @@ cython_debug/
 #.idea/
 
 /private.py
-/data/results.csv
+# /data/results.csv
