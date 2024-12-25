@@ -23,19 +23,19 @@ This project explores the integration of **Draco2**, a logic programming framewo
 
 ## Introduction
 
-This project implements an automated pipeline for visualization recommendation, using the following tools:
+This project implements an automated pipeline for visualization recommendations, using the following tools:
 - **Draco2**: A constraint solver to recommend visualizations in **Vega-Lite** format.
 - **LLM (Gemini API)**: Used to identify relevant columns for visualization from a dataset.
-- **Evaluation Metrics**: Combined evaluation using multimodal LLMs and Draco's scoring system, which accounts for soft constraint violations. In more detail, method is described bellow.
+- **Evaluation Metrics**: Combined evaluation using multimodal LLMs and Draco's scoring system, which accounts for soft constraint violations. The method is described below in more detail.
 - **Dataset**: The dataset used is the **weather dataset** from Vega-Lite.
 
 ---
 
 ## Principles of Visualization
-Before we start to dive into how the Evaluation was done, I need to bring in lights few terms and principles that are going to be used in further explanations, and which are going to be used for evaluation of the generated visualizations.
+Before we start to dive into how the Evaluation was done, I need to introduce a few terms and principles that will be used in further explanations and for evaluating the generated visualizations.
 
 #### Expressiveness
-Expressiveness pertains to the extent to which a visualization accurately represents the underlying data and relationships. An expressive visualization ensures that all relevant information is depicted without distortion or omission, enabling viewers to interpret the data's true meaning. This includes choosing the right type of chart or graph that aligns with the data's characteristics and the message intended to be communicated.
+Expressiveness pertains to how a visualization accurately represents the underlying data and relationships. An expressive visualization ensures that all relevant information is depicted without distortion or omission, enabling viewers to interpret the data's true meaning. This includes choosing the right type of chart or graph that aligns with the data's characteristics and the message intended to be communicated.
 
 #### Efficiency
 Efficiency in data visualization refers to the ability of a visual representation to convey information quickly and accurately to the viewer. An efficient visualization minimizes cognitive load, allowing users to grasp insights without unnecessary effort. This involves clear design, appropriate use of visual elements, and elimination of superfluous details that do not contribute to understanding the data.
@@ -53,7 +53,7 @@ Gestalt principles, originating from psychology, describe how humans naturally p
 
 - Proximity: Elements that are close to each other are perceived as related or part of a group. In visualizations, clustering related data points together can indicate their association.
 
-- Similarity: Objects sharing similar attributes (e.g., color, shape, size) are seen as part of the same group. Consistent use of colors or shapes to represent similar data categories leverages this principle.
+- Similarity: Objects sharing similar attributes (e.g., colour, shape, size) are seen as part of the same group. Consistent use of colours or shapes to represent similar data categories leverages this principle.
 
 - Enclosure (Common Region): Elements enclosed within a boundary are perceived as a group. Using backgrounds or borders to enclose related data points can effectively indicate grouping.
 
@@ -65,35 +65,37 @@ Gestalt principles, originating from psychology, describe how humans naturally p
 
 - Figure-Ground: The mind separates visual fields into the main object (figure) and the background (ground). Ensuring a clear distinction between data (figure) and background enhances focus and understanding.
 
-All principles listed above can be used to fully evaluate our visualization. When we say fully we mean that cover all aspects of visualization, not only from perspective of data (like Efficiency and Expressiveness), but also from the side of the design (like Gestalt Principles and Data-Ink ratio).
+All principles listed above can be used to fully evaluate our visualization. When we say fully we mean that covers all aspects of visualization, not only from the perspective of data (like Efficiency and Expressiveness) but also from the side of the design (like Gestalt Principles and Data-Ink ratio).
+
+You may question yourself, why exactly these principles of good visualization were chosen? Principles like Expressiveness, Efficiency, and Data-Ink Ratio focus on the functional and practical aspects. Engagement and Gestalt Principles emphasize the aesthetic and psychological dimensions, ensuring that visualizations are appealing and align with human cognitive patterns. The combination of these principles provides a well-rounded, multidimensional approach to evaluating visualizations. Together, they ensure that visualization is accurate, efficient, engaging, clear, and intuitive, covering every aspect necessary for effective data communication. This holistic framework allows for thorough and meaningful evaluation.
 
 ---
 
 ## Evaluation Method
-Before we are going to talk about evaluation we need to know which system we are going to evaluate, therefore, bellow, I provide a concise explanation of how the system is working.
+Before we are going to talk about evaluation we need to know which system we are going to evaluate, therefore, below, I provide a concise explanation of how the system is working.
 
 My system works in the following way: First, through LLM we choose the columns, my approach relies on the Gemini-1.5 Model from Google (Google I am sorry, I use it only for research purposes), this model is prompted with the information about the data itself, so we tell the model general characteristics of the data which we can obtain directly from running `df.info()` function, then we just ask the model to choose two columns that are going to result in the **BEST** visualization. (Later we will go back to this: "BEST" word). 
 
-Second, after we have columns that we want to visualize, at the same time we obtain the data schema from Draco2, and therefore we can now pass it to constrain solver, which is going to return us design space in which we just choose the first and the best chart from the solver (has the lowest draco_score). 
+Second, after we have columns that we want to visualize, at the same time we obtain the data schema from Draco2, and therefore we can now pass it to the constrain solver, which is going to return us design space in which we just choose the first and the best chart from the solver (has the lowest draco_score). 
 
-Good, now we have visualization for our chosen columns, and at the same time we can generate visualizations for all combination of columns and see and compare the results. [Here is the visualization that we have by using the columns from the LLM choice](./assets/LLM_date+LLM_precipitation+12.png) (You also can see in on the left bellow). Right next to the date-precipitation chart(LLM chosen columns) we can see another good example of generated chart.
+Good, now we have visualization for our chosen columns, and at the same time, we can generate visualizations for all combinations of columns and see and compare the results. [Here is the visualization that we have by using the columns from the LLM choice](./assets/LLM_date+LLM_precipitation+12.png) (You also can see it on the left below). Right next to the date-precipitation chart(LLM chosen columns), we can see another good example of the generated chart.
 
 <p align="center">
   <img src="./assets/LLM_date+LLM_precipitation+12.png" alt="Image 1" width="45%" style="margin-right: 10px;">
   <img src="./assets/precipitation+wind+12.png" alt="Image 2" width="45%">
 </p>
 
-Good, right now we have columns, we have charts, and we have draco_score for this charts, for example few charts that are shown above, have exactly the same draco score, and this can be seen [here](#results). However we see that the charts are different and they deliver different insights and information, so how can we evaluate and compare this charts? 
+Good, right now we have columns, we have charts, and we have draco_score for these charts, for example few charts that are shown above, have exactly the same draco score, and this can be seen [here](#results). However, we see that the charts are different and they deliver different insights and information, so how can we evaluate and compare these charts? 
 
-Therefore time has come to introduce you new evaluation method (probably there is already something similar, but i didn't manage to find, one work that was close to this method is work from [these guys](https://www.researchgate.net/publication/344084728_How_to_evaluate_data_visualizations_across_different_levels_of_understanding) but I made some inventions from my side)
+Therefore time has come to introduce you new evaluation method (probably already something similar, but I didn't manage to find, one work that was close to this method is work from [these guys](https://www.researchgate.net/publication/344084728_How_to_evaluate_data_visualizations_across_different_levels_of_understanding) but I made some inventions from my side)
 
-To begin with, how do we understand that the following visualization(like one from the above) complies with for example Efficiency principle? We know the definition, we see the visualization, but how do we come to the conclusion that this one does or doesn't comply with Efficiency principle, or how well does it comply, to what extent? I decided to go into our thought process, and I came up with the conclusion, that we sort of answering simple and specific questions that we derive by ourself, once we have seen the definition of the principle. Let me elaborate...
+To begin with, how do we understand that the following visualization(like the one from the above) complies with any principle like Efficiency? We know the definition, and we see the visualization, but how do we come to the conclusion that this one does or doesn't comply with the Efficiency principle, or how well does it comply, and to what extent? I decided to go into our thought process, and I came up with the conclusion, that we sort of answer simple and specific questions that we derive by ourselves, once we have seen the definition of the principle. Let me elaborate...
 
 Efficiency - "refers to the ability of a visual representation to convey information quickly and accurately to the viewer. An efficient visualization minimizes cognitive load, allowing users to grasp insights without unnecessary effort. This involves clear design, appropriate use of visual elements, and elimination of superfluous details that do not contribute to understanding the data." [Evaluating the Effectiveness and Efficiency of Visual Variables](https://link.springer.com/chapter/10.1007/978-3-642-03832-7_12#Abs1). 
 
-By knowing the definition and the task (in our case it is data exploration) we can derive sort of questions, and answering those we can understand how the following visualizations comply with Efficiency principle. For example: "Can the main trends or patterns be understood within a few seconds when looking at this visualization?". By creating multiple questions that touch different aspects of the definition of the principle and by making the questions easy and binary (the answer is "yes" or "no" where answer "no" always represents that one of the visualization's aspect is not good according to this principle), we can obtain list with "yes" and "no" answers. Then those "yes" and "no" can be converted in 1's and 0's respectively (for more smooth judgments I introduced 0.5 if the model cannot derive the answer clearly), and therefore we can count the mean and obtain the score. The scores can be seen in the [Results](#results)
+By knowing the definition and the task (in our case it is data exploration) we can derive sorts of questions, and by answering those we can understand how the following visualizations comply with the Efficiency principle. For example: "Can the main trends or patterns be understood within a few seconds when looking at this visualization?". By creating multiple questions that touch different aspects of the definition of the principle and by making the questions easy and binary (the answer is "yes" or "no" where the answer "no" always represents that one of the visualization's aspects is not good according to this principle), we can obtain the list with "yes" and "no" answers. Then those "yes" and "no" can be converted into 1's and 0's respectively (for more smooth judgments I introduced 0.5 if the model cannot derive the answer clearly), and therefore we can count the mean and obtain the score. The scores can be seen in the [Results](#results)
 
-So far so good, and the sweetest part is that Multi-modal LLMs can answer this sort of questions - when we input the visualization picture in the prompt as well. How reliable this method of evaluation? Honestly, it's difficult to answer this question... But I will give a try! I have a list with 8 questions and I have to visualization, my own judgment came to the following numbers: Talking about Efficiency - 0.75 for the chart on the left above (LLM - date - precipitation), - 1 for the chart at the right (wind - precipitation). As we can see, my manual judgments did align good but only for the Efficiency Principle, in future I would like to check for the rest of the Principles (especially Expressiveness!). The method is raw and seeks improvements, however I see future potential of this methods especially because we can fine-tune the LLMs and narrow them down for this specific purpose. I hope that someone finds this repository useful for their research in this field!
+So far so good, and the sweetest part is that Multi-modal LLMs can answer this sort of question - when we input the visualization picture in the prompt as well. How reliable is this method of evaluation? Honestly, it's difficult to answer this question... But I will give it a try! I have a list with 8 questions and I have two visualizations, my own judgment came to the following numbers: Talking about Efficiency - 0.75 for the chart on the left above (LLM - date - precipitation), - 1 for the chart at the right (wind - precipitation). As we can see, my manual judgments did align well but only for the Efficiency Principle, in future, I would like to check for the rest of the Principles (especially Expressiveness!). The method is raw and seeks improvements, however, I see the future potential of this method especially because we can fine-tune the LLMs and narrow them down for this specific purpose. I hope that someone finds this repository useful for their research in this field!
 
 ---
 
